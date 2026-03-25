@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оплата — CoffeeStrategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="payment-page">
+
+<nav class="navbar navbar-light">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">☕</span>
+      <span class="logo-text">Coffee<strong>Strategy</strong></span>
+    </a>
+    <div class="nav-progress">
+      <div class="progress-step done">✓ Бриф</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step done">✓ Превью</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step active">3. PDF-отчёт</div>
+    </div>
+  </div>
+</nav>
+
+<div class="payment-container">
+  <div class="payment-grid">
+
+    <!-- ORDER SUMMARY -->
+    <div class="order-summary">
+      <h2>Ваш заказ</h2>
+      <div class="order-item">
+        <div class="order-item-icon">📄</div>
+        <div class="order-item-info">
+          <div class="order-item-name">Полный PDF-отчёт</div>
+          <div class="order-item-desc">Маркетинговая стратегия для кофейни</div>
+        </div>
+        <div class="order-item-price">990 ₽</div>
+      </div>
+
+      <div class="order-divider"></div>
+
+      <div class="order-includes">
+        <h4>Что включено:</h4>
+        <ul>
+          <li>✓ Детальный анализ 2 сегментов ЦА</li>
+          <li>✓ Карта пути покупателя</li>
+          <li>✓ Цветовая палитра + типографика</li>
+          <li>✓ Голос бренда (do/don't)</li>
+          <li>✓ Контент-план: 16+ постов с хуками</li>
+          <li>✓ Хэштеги по 4 категориям</li>
+          <li>✓ KPI и быстрые победы</li>
+        </ul>
+      </div>
+
+      <div class="order-total">
+        <span>Итого</span>
+        <span class="total-price">990 ₽</span>
+      </div>
+
+      <div class="order-guarantee">
+        <span class="guarantee-icon">🛡️</span>
+        <span>Безопасная оплата · Мгновенная доставка</span>
+      </div>
+    </div>
+
+    <!-- PAYMENT FORM -->
+    <div class="payment-form-block">
+      <h2>Оплата</h2>
+
+      <!-- Stripe button (if configured) -->
+      <div id="stripeBlock" class="payment-method-block">
+        <button id="stripeBtn" class="btn-primary btn-large btn-stripe">
+          💳 Оплатить картой (Stripe)
+        </button>
+        <div class="payment-divider">
+          <span>или используйте демо-код</span>
+        </div>
+      </div>
+
+      <!-- Demo payment form -->
+      <div class="demo-payment-block">
+        <div class="demo-notice">
+          <span class="demo-badge">DEMO</span>
+          <span>Для тестирования используйте код: <strong>DEMO2024</strong></span>
+        </div>
+
+        <form id="paymentForm">
+          <div class="form-group">
+            <label for="email">Email для получения отчёта</label>
+            <input type="email" id="email" name="email"
+                   placeholder="your@email.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="payment_code">Код оплаты</label>
+            <div class="code-input-wrapper">
+              <input type="text" id="payment_code" name="payment_code"
+                     placeholder="Введите код..." required
+                     style="text-transform: uppercase;">
+              <div class="code-hint">Тестовый код: DEMO2024</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary btn-large" id="payBtn">
+            <span class="btn-text">Получить PDF-отчёт →</span>
+            <span class="btn-loading hidden">
+              <span class="spinner"></span>
+              Генерируем отчёт...
+            </span>
+          </button>
+        </form>
+      </div>
+
+      <div id="paymentError" class="error-message hidden"></div>
+
+      <div class="payment-security">
+        <div class="security-item">🔒 SSL-шифрование</div>
+        <div class="security-item">⚡ Мгновенная доставка</div>
+        <div class="security-item">📄 PDF-формат</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/static/js/payment.js"></script>
+</body>
+</html>

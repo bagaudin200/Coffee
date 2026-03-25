@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Заполните бриф — CoffeeStrategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="brief-page">
+
+<nav class="navbar navbar-light">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">☕</span>
+      <span class="logo-text">Coffee<strong>Strategy</strong></span>
+    </a>
+    <div class="nav-progress">
+      <div class="progress-step active">1. Бриф</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step">2. Превью</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step">3. PDF-отчёт</div>
+    </div>
+  </div>
+</nav>
+
+<div class="brief-container">
+  <div class="brief-header">
+    <h1>Расскажите о своей кофейне</h1>
+    <p>Заполните бриф — AI создаст персональную стратегию за 30 секунд</p>
+  </div>
+
+  <form id="briefForm" class="brief-form">
+    <!-- SECTION 1: Основное -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <span class="form-section-num">01</span>
+        <h2>Основная информация</h2>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="coffee_name">
+            Название кофейни <span class="required">*</span>
+          </label>
+          <input type="text" id="coffee_name" name="coffee_name"
+                 placeholder="Например: Кофейня «Утро»"
+                 required maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="location">
+            Город и район <span class="required">*</span>
+          </label>
+          <input type="text" id="location" name="location"
+                 placeholder="Например: Москва, Арбат"
+                 required maxlength="100">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="coffee_type">
+            Тип заведения <span class="required">*</span>
+          </label>
+          <select id="coffee_type" name="coffee_type" required>
+            <option value="">Выберите тип...</option>
+            <option value="Кофейня-кондитерская">Кофейня-кондитерская</option>
+            <option value="Кофе с собой (to-go)">Кофе с собой (to-go)</option>
+            <option value="Specialty-кофейня">Specialty-кофейня</option>
+            <option value="Кофейня-коворкинг">Кофейня-коворкинг</option>
+            <option value="Семейная кофейня">Семейная кофейня</option>
+            <option value="Кофейня при пекарне">Кофейня при пекарне</option>
+            <option value="Кофейня в бизнес-центре">Кофейня в бизнес-центре</option>
+            <option value="Другое">Другое</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="price_range">
+            Ценовой диапазон <span class="required">*</span>
+          </label>
+          <select id="price_range" name="price_range" required>
+            <option value="">Выберите сегмент...</option>
+            <option value="Эконом (кофе до 150 ₽)">Эконом (кофе до 150 ₽)</option>
+            <option value="Средний (кофе 150–300 ₽)">Средний (кофе 150–300 ₽)</option>
+            <option value="Выше среднего (кофе 300–500 ₽)">Выше среднего (кофе 300–500 ₽)</option>
+            <option value="Премиум (кофе от 500 ₽)">Премиум (кофе от 500 ₽)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Аудитория -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <span class="form-section-num">02</span>
+        <h2>Ваши клиенты</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="target_audience">
+          Кто ваши основные клиенты? <span class="required">*</span>
+        </label>
+        <textarea id="target_audience" name="target_audience"
+                  placeholder="Например: Молодые люди 20–35 лет, студенты и офисные работники, которые приходят утром перед работой и в обед. Ценят качество и уютную атмосферу."
+                  rows="3" required maxlength="500"></textarea>
+        <div class="field-hint">Опишите своими словами — кто чаще всего к вам приходит</div>
+      </div>
+
+      <div class="form-group">
+        <label for="unique_features">Что делает вас особенными?</label>
+        <textarea id="unique_features" name="unique_features"
+                  placeholder="Например: Авторские сиропы собственного производства, уютный интерьер с книжными полками, бариста-чемпионы, редкие сорта кофе из Эфиопии..."
+                  rows="3" maxlength="500"></textarea>
+        <div class="field-hint">Ваши конкурентные преимущества и уникальные особенности</div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Конкуренты и соцсети -->
+    <div class="form-section">
+      <div class="form-section-header">
+        <span class="form-section-num">03</span>
+        <h2>Конкуренты и соцсети</h2>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="competitors">Основные конкуренты поблизости</label>
+          <input type="text" id="competitors" name="competitors"
+                 placeholder="Например: Starbucks, местная сеть «Кофемания»"
+                 maxlength="200">
+        </div>
+        <div class="form-group">
+          <label for="social_media">Текущие соцсети</label>
+          <input type="text" id="social_media" name="social_media"
+                 placeholder="Например: Instagram @mycafe, VK"
+                 maxlength="200">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="additional_info">Дополнительная информация</label>
+        <textarea id="additional_info" name="additional_info"
+                  placeholder="Любая другая информация, которая поможет создать лучшую стратегию: история кофейни, планы на будущее, проблемы, которые хотите решить..."
+                  rows="3" maxlength="500"></textarea>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="form-submit">
+      <button type="submit" class="btn-primary btn-large btn-submit" id="submitBtn">
+        <span class="btn-text">Создать стратегию</span>
+        <span class="btn-loading hidden">
+          <span class="spinner"></span>
+          Анализируем...
+        </span>
+      </button>
+      <div class="submit-note">
+        🔒 Превью бесплатно · Данные защищены · Генерация займёт ~30 секунд
+      </div>
+    </div>
+  </form>
+
+  <div id="errorMessage" class="error-message hidden"></div>
+</div>
+
+<script src="/static/js/brief.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+reports/
+/tmp/
+.DS_Store
+*.pdf
+flask_sessions/

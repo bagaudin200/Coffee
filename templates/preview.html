@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Превью стратегии — CoffeeStrategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="preview-page">
+
+<nav class="navbar navbar-light">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">☕</span>
+      <span class="logo-text">Coffee<strong>Strategy</strong></span>
+    </a>
+    <div class="nav-progress">
+      <div class="progress-step done">✓ Бриф</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step active">2. Превью</div>
+      <div class="progress-arrow">→</div>
+      <div class="progress-step">3. PDF-отчёт</div>
+    </div>
+  </div>
+</nav>
+
+<div class="preview-container">
+
+  <!-- Header -->
+  <div class="preview-header">
+    <div class="preview-header-icon">✨</div>
+    <h1>Ваша стратегия готова!</h1>
+    <p>Превью для <strong>{{ brief_data.coffee_name }}</strong> · {{ brief_data.location }}</p>
+  </div>
+
+  <!-- SECTION 1: Аудитория -->
+  <div class="preview-section">
+    <div class="preview-section-header">
+      <span class="section-icon">👥</span>
+      <h2>Анализ целевой аудитории</h2>
+      <span class="preview-badge">Превью</span>
+    </div>
+
+    <div class="preview-cards">
+      <div class="preview-card highlight">
+        <div class="card-label">Основной сегмент</div>
+        <div class="card-value">{{ strategy.audience_preview.primary_segment }}</div>
+      </div>
+      <div class="preview-card highlight">
+        <div class="card-label">Возраст</div>
+        <div class="card-value">{{ strategy.audience_preview.age_range }}</div>
+      </div>
+    </div>
+
+    <div class="preview-list-section">
+      <div class="preview-list-block">
+        <h4>Ключевые потребности</h4>
+        <ul>
+          {% for need in strategy.audience_preview.key_needs %}
+          <li>{{ need }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="preview-list-block">
+        <h4>Боли аудитории</h4>
+        <ul class="pain-list">
+          {% for pain in strategy.audience_preview.pain_points %}
+          <li>{{ pain }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Locked content -->
+    <div class="locked-content">
+      <div class="locked-rows">
+        <div class="locked-row"></div>
+        <div class="locked-row short"></div>
+        <div class="locked-row"></div>
+        <div class="locked-row medium"></div>
+      </div>
+      <div class="lock-overlay">
+        <span class="lock-icon">🔒</span>
+        <span>Карта пути клиента, вторичный сегмент и инсайты — в полном отчёте</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Брендинг -->
+  <div class="preview-section">
+    <div class="preview-section-header">
+      <span class="section-icon">🎨</span>
+      <h2>Визуальный брендинг</h2>
+      <span class="preview-badge">Превью</span>
+    </div>
+
+    <div class="preview-cards">
+      <div class="preview-card brand-card">
+        <div class="card-label">Архетип бренда</div>
+        <div class="card-value brand-archetype">{{ strategy.branding_preview.brand_archetype }}</div>
+      </div>
+      <div class="preview-card tagline-card">
+        <div class="card-label">Слоган</div>
+        <div class="card-value tagline">«{{ strategy.branding_preview.tagline }}»</div>
+      </div>
+    </div>
+
+    <div class="brand-voice-block">
+      <h4>Голос бренда</h4>
+      <p>{{ strategy.branding_preview.brand_voice }}</p>
+    </div>
+
+    <div class="color-palette">
+      <h4>Цветовая палитра</h4>
+      <div class="palette-swatches">
+        {% for color in strategy.branding_preview.color_palette %}
+        <div class="swatch">
+          <div class="swatch-color" style="background: {{ color }};"></div>
+          <div class="swatch-name">{{ color }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Locked -->
+    <div class="locked-content">
+      <div class="locked-rows">
+        <div class="locked-row short"></div>
+        <div class="locked-row"></div>
+        <div class="locked-row medium"></div>
+      </div>
+      <div class="lock-overlay">
+        <span class="lock-icon">🔒</span>
+        <span>Типографика, do/don't, концепции и логотип — в полном отчёте</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Контент -->
+  <div class="preview-section">
+    <div class="preview-section-header">
+      <span class="section-icon">📅</span>
+      <h2>Контент-план</h2>
+      <span class="preview-badge">Превью</span>
+    </div>
+
+    <div class="content-teaser">
+      <div class="teaser-block">
+        <h4>Топ идеи для постов</h4>
+        <div class="content-ideas">
+          {% for idea in strategy.content_teaser.top_content_ideas %}
+          <div class="content-idea-chip">{{ idea }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="teaser-meta">
+        <div class="teaser-item">
+          <span class="teaser-label">Лучшее время</span>
+          <span class="teaser-value">{{ strategy.content_teaser.best_posting_times }}</span>
+        </div>
+        <div class="teaser-item">
+          <span class="teaser-label">Платформы</span>
+          <span class="teaser-value">{{ strategy.content_teaser.recommended_platforms | join(', ') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Locked calendar -->
+    <div class="locked-calendar">
+      <div class="calendar-header">
+        <div class="cal-col">День</div>
+        <div class="cal-col">Платформа</div>
+        <div class="cal-col">Идея поста</div>
+      </div>
+      <div class="calendar-rows-locked">
+        <div class="cal-row">
+          <div class="cal-cell">Пн</div>
+          <div class="cal-cell">Instagram</div>
+          <div class="cal-cell blurred">████████████████</div>
+        </div>
+        <div class="cal-row">
+          <div class="cal-cell">Ср</div>
+          <div class="cal-cell">VK</div>
+          <div class="cal-cell blurred">████████████</div>
+        </div>
+        <div class="cal-row">
+          <div class="cal-cell">Пт</div>
+          <div class="cal-cell">Instagram</div>
+          <div class="cal-cell blurred">██████████████████</div>
+        </div>
+      </div>
+      <div class="lock-overlay">
+        <span class="lock-icon">🔒</span>
+        <span>16+ постов с хуками и хэштеги — в полном отчёте</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STRATEGY SUMMARY -->
+  <div class="strategy-summary">
+    <div class="summary-icon">💡</div>
+    <h3>Резюме стратегии</h3>
+    <p>{{ strategy.strategy_summary }}</p>
+  </div>
+
+  <!-- CTA BLOCK -->
+  <div class="preview-cta">
+    <div class="cta-content">
+      <h2>Получите полную стратегию</h2>
+      <p>Скачайте профессиональный PDF-отчёт с детальным анализом, полным контент-планом и готовыми хэштегами</p>
+      <div class="cta-features">
+        <span>✓ Полный анализ ЦА</span>
+        <span>✓ Цветовая палитра</span>
+        <span>✓ 16+ идей постов</span>
+        <span>✓ KPI и метрики</span>
+      </div>
+      <div class="cta-price">
+        <span class="price-amount">990 ₽</span>
+        <span class="price-note">разовая оплата · без подписки</span>
+      </div>
+      <a href="/payment" class="btn-primary btn-large">
+        Скачать PDF-отчёт →
+      </a>
+    </div>
+    <div class="cta-preview-img">
+      <div class="pdf-mockup">
+        <div class="pdf-page">
+          <div class="pdf-header-bar"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line short"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line medium"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line short"></div>
+          <div class="pdf-section-break"></div>
+          <div class="pdf-line"></div>
+          <div class="pdf-line medium"></div>
+          <div class="pdf-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>

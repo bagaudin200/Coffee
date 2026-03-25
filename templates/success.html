@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Отчёт готов — CoffeeStrategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="success-page">
+
+<nav class="navbar navbar-light">
+  <div class="nav-container">
+    <a href="/" class="nav-logo">
+      <span class="logo-icon">☕</span>
+      <span class="logo-text">Coffee<strong>Strategy</strong></span>
+    </a>
+  </div>
+</nav>
+
+<div class="success-container">
+  <div class="success-card">
+    <div class="success-animation">
+      <div class="success-circle">
+        <span class="success-check">✓</span>
+      </div>
+    </div>
+
+    <h1>Ваш отчёт готов!</h1>
+    <p class="success-subtitle">
+      Маркетинговая стратегия для <strong>{{ coffee_name }}</strong> сгенерирована
+    </p>
+
+    <div class="report-info">
+      <div class="report-id">
+        <span class="report-id-label">ID отчёта:</span>
+        <span class="report-id-value">#{{ report_id }}</span>
+      </div>
+    </div>
+
+    <a href="/download/{{ pdf_filename }}" class="btn-primary btn-large btn-download">
+      <span>⬇️ Скачать PDF-отчёт</span>
+    </a>
+
+    <div class="success-features">
+      <div class="success-feature">
+        <span class="sf-icon">👥</span>
+        <span>Анализ ЦА</span>
+      </div>
+      <div class="success-feature">
+        <span class="sf-icon">🎨</span>
+        <span>Брендинг</span>
+      </div>
+      <div class="success-feature">
+        <span class="sf-icon">📅</span>
+        <span>Контент-план</span>
+      </div>
+      <div class="success-feature">
+        <span class="sf-icon">📊</span>
+        <span>KPI</span>
+      </div>
+    </div>
+
+    <div class="success-next">
+      <h3>Что делать дальше?</h3>
+      <ol>
+        <li>Изучите анализ аудитории и выберите приоритетный сегмент</li>
+        <li>Согласуйте цветовую палитру с дизайнером или SMM-специалистом</li>
+        <li>Запланируйте первые посты по контент-плану</li>
+        <li>Настройте аналитику для отслеживания KPI</li>
+      </ol>
+    </div>
+
+    <div class="success-actions">
+      <a href="/brief" class="btn-secondary">Создать ещё одну стратегию</a>
+      <a href="/" class="btn-link">На главную</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-trigger download
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    const link = document.querySelector('.btn-download');
+    if (link) link.click();
+  }, 1000);
+});
+</script>
+</body>
+</html>
