@@ -1,9 +1,15 @@
 import os
 import json
 from openai import OpenAI
+import google.generativeai as genai
 
-# Use system-configured OpenAI client (API key and base URL pre-configured in environment)
-client = OpenAI()
+# Initialize OpenAI client
+openai_client = OpenAI()
+
+# Initialize Gemini if API key is present
+google_api_key = os.environ.get("GOOGLE_API_KEY")
+if google_api_key:
+    genai.configure(api_key=google_api_key)
 
 PREVIEW_SYSTEM_PROMPT = """Ты — эксперт по маркетингу кофеен. Тебе дают краткий бриф о кофейне, и ты создаёшь КРАТКОЕ превью маркетинговой стратегии.
 Отвечай ТОЛЬКО валидным JSON без markdown-блоков, без пояснений.
@@ -155,7 +161,6 @@ FULL_SYSTEM_PROMPT = """Ты — эксперт по маркетингу коф
   ]
 }"""
 
-
 def build_user_prompt(data: dict) -> str:
     return f"""Бриф кофейни:
 - Название: {data.get('coffee_name', 'Не указано')}
@@ -168,12 +173,8 @@ def build_user_prompt(data: dict) -> str:
 - Текущие соцсети: {data.get('social_media', 'Не указано')}
 - Дополнительно: {data.get('additional_info', 'Не указано')}"""
 
-
-def generate_strategy(data: dict, preview_only: bool = True) -> dict:
-    system_prompt = PREVIEW_SYSTEM_PROMPT if preview_only else FULL_SYSTEM_PROMPT
-    user_prompt = build_user_prompt(data)
-
-    response = client.chat.completions.create(
+def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only: bool) -> dict:
+    response = openai_client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -183,6 +184,27 @@ def generate_strategy(data: dict, preview_only: bool = True) -> dict:
         max_tokens=4000 if preview_only else 8000,
         response_format={"type": "json_object"}
     )
-
     content = response.choices[0].message.content
     return json.loads(content)
+
+def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
+    model = genai.GenerativeModel('gemini-1.5-flash', 
+                                  generation_config={"response_mime_type": "application/json"})
+    
+    full_prompt = f"{system_prompt}\n\n{user_prompt}"
+    response = model.generate_content(full_prompt)
+    return json.loads(response.text)
+
+def generate_strategy(data: dict, preview_only: bool = True) -> dict:
+    system_prompt = PREVIEW_SYSTEM_PROMPT if preview_only else FULL_SYSTEM_PROMPT
+    user_prompt = build_user_prompt(data)
+
+    # Prefer Gemini if GOOGLE_API_KEY is set
+    if os.environ.get("GOOGLE_API_KEY"):
+        try:
+            return generate_strategy_gemini(system_prompt, user_prompt)
+        except Exception as e:
+            print(f"Gemini error: {e}. Falling back to OpenAI.")
+            return generate_strategy_openai(system_prompt, user_prompt, preview_only)
+    else:
+        return generate_strategy_openai(system_prompt, user_prompt, preview_only)
