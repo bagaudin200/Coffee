@@ -27,11 +27,30 @@ ACCENT_GREEN = colors.HexColor("#4A7C59")
 
 def register_fonts():
     """Register Noto fonts with full Cyrillic support."""
-    noto_base = "/usr/share/fonts/truetype/noto/"
-    pdfmetrics.registerFont(TTFont("NotoSans", noto_base + "NotoSans-Regular.ttf"))
-    pdfmetrics.registerFont(TTFont("NotoSans-Bold", noto_base + "NotoSans-Bold.ttf"))
-    pdfmetrics.registerFont(TTFont("NotoSans-Italic", noto_base + "NotoSans-Italic.ttf"))
-    pdfmetrics.registerFont(TTFont("NotoSans-BoldItalic", noto_base + "NotoSans-BoldItalic.ttf"))
+    # Try multiple common font paths for Linux (Railway/Ubuntu) and macOS
+    font_paths = [
+        "/usr/share/fonts/truetype/noto/",
+        "/usr/share/fonts/noto/",
+        "/home/ubuntu/.local/share/fonts/",
+        "/Library/Fonts/",
+        os.path.join(os.path.dirname(__file__), "static/fonts/")
+    ]
+    
+    noto_base = None
+    for path in font_paths:
+        if os.path.exists(os.path.join(path, "NotoSans-Regular.ttf")):
+            noto_base = path
+            break
+    
+    if not noto_base:
+        # Fallback to Helvetica if Noto is not found (Cyrillic might break, but app won't crash)
+        print("Warning: NotoSans fonts not found. Falling back to Helvetica.")
+        return
+
+    pdfmetrics.registerFont(TTFont("NotoSans", os.path.join(noto_base, "NotoSans-Regular.ttf")))
+    pdfmetrics.registerFont(TTFont("NotoSans-Bold", os.path.join(noto_base, "NotoSans-Bold.ttf")))
+    pdfmetrics.registerFont(TTFont("NotoSans-Italic", os.path.join(noto_base, "NotoSans-Italic.ttf")))
+    pdfmetrics.registerFont(TTFont("NotoSans-BoldItalic", os.path.join(noto_base, "NotoSans-BoldItalic.ttf")))
     from reportlab.pdfbase.pdfmetrics import registerFontFamily
     registerFontFamily(
         "NotoSans",
