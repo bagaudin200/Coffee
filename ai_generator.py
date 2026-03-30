@@ -215,17 +215,20 @@ def generate_strategy(data: dict, preview_only: bool = True) -> dict:
     system_prompt = PREVIEW_SYSTEM_PROMPT if preview_only else FULL_SYSTEM_PROMPT
     user_prompt = build_user_prompt(data)
 
-    # Prefer Gemini if GOOGLE_API_KEY is set
-    if os.environ.get("GOOGLE_API_KEY"):
+    # Priority 1: OpenAI (Most stable on Railway)
+    if os.environ.get("OPENAI_API_KEY"):
         try:
-            return generate_strategy_gemini(system_prompt, user_prompt)
+            return generate_strategy_openai(system_prompt, user_prompt, preview_only)
         except Exception as e:
-            print(f"Gemini error: {e}. Falling back to OpenAI if possible.")
-            if os.environ.get("OPENAI_API_KEY"):
-                return generate_strategy_openai(system_prompt, user_prompt, preview_only)
+            print(f"OpenAI error: {e}. Falling back to Gemini if possible.")
+            if os.environ.get("GOOGLE_API_KEY"):
+                return generate_strategy_gemini(system_prompt, user_prompt)
             else:
                 raise e
-    elif os.environ.get("OPENAI_API_KEY"):
-        return generate_strategy_openai(system_prompt, user_prompt, preview_only)
+    
+    # Priority 2: Gemini
+    elif os.environ.get("GOOGLE_API_KEY"):
+        return generate_strategy_gemini(system_prompt, user_prompt)
+    
     else:
         raise ValueError("No AI API keys found (OPENAI_API_KEY or GOOGLE_API_KEY). Please set them in Railway variables.")
