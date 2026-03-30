@@ -168,9 +168,10 @@ def build_user_prompt(data: dict) -> str:
 - Дополнительно: {data.get('additional_info', 'Не указано')}"""
 
 def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only: bool) -> dict:
-    api_key = os.environ.get("OPENAI_API_KEY")
+    # Support both OPENAI_API_KEY and OPEN_API_KEY (user's typo in Railway)
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPEN_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY is not set in environment variables.")
+        raise ValueError("OPENAI_API_KEY or OPEN_API_KEY is not set in environment variables.")
     
     client = OpenAI(api_key=api_key)
     response = client.chat.completions.create(
@@ -216,7 +217,8 @@ def generate_strategy(data: dict, preview_only: bool = True) -> dict:
     user_prompt = build_user_prompt(data)
 
     # Priority 1: OpenAI (Most stable on Railway)
-    if os.environ.get("OPENAI_API_KEY"):
+    # Support both OPENAI_API_KEY and OPEN_API_KEY
+    if os.environ.get("OPENAI_API_KEY") or os.environ.get("OPEN_API_KEY"):
         try:
             return generate_strategy_openai(system_prompt, user_prompt, preview_only)
         except Exception as e:
