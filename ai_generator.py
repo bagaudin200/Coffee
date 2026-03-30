@@ -3,13 +3,7 @@ import json
 from openai import OpenAI
 import google.generativeai as genai
 
-# Initialize OpenAI client
-openai_client = OpenAI()
-
-# Initialize Gemini if API key is present
-google_api_key = os.environ.get("GOOGLE_API_KEY")
-if google_api_key:
-    genai.configure(api_key=google_api_key)
+# We will initialize clients lazily inside functions to avoid startup crashes if keys are missing
 
 PREVIEW_SYSTEM_PROMPT = """Ты — эксперт по маркетингу кофеен. Тебе дают краткий бриф о кофейне, и ты создаёшь КРАТКОЕ превью маркетинговой стратегии.
 Отвечай ТОЛЬКО валидным JSON без markdown-блоков, без пояснений.
@@ -174,7 +168,12 @@ def build_user_prompt(data: dict) -> str:
 - Дополнительно: {data.get('additional_info', 'Не указано')}"""
 
 def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only: bool) -> dict:
-    response = openai_client.chat.completions.create(
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY is not set in environment variables.")
+    
+    client = OpenAI(api_key=api_key)
+    response = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -188,6 +187,11 @@ def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only:
     return json.loads(content)
 
 def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY is not set in environment variables.")
+    
+    genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.5-flash', 
                                   generation_config={"response_mime_type": "application/json"})
     
@@ -204,7 +208,12 @@ def generate_strategy(data: dict, preview_only: bool = True) -> dict:
         try:
             return generate_strategy_gemini(system_prompt, user_prompt)
         except Exception as e:
-            print(f"Gemini error: {e}. Falling back to OpenAI.")
-            return generate_strategy_openai(system_prompt, user_prompt, preview_only)
-    else:
+            print(f"Gemini error: {e}. Falling back to OpenAI if possible.")
+            if os.environ.get("OPENAI_API_KEY"):
+                return generate_strategy_openai(system_prompt, user_prompt, preview_only)
+            else:
+                raise e
+    elif os.environ.get("OPENAI_API_KEY"):
         return generate_strategy_openai(system_prompt, user_prompt, preview_only)
+    else:
+        raise ValueError("No AI API keys found (OPENAI_API_KEY or GOOGLE_API_KEY). Please set them in Railway variables.")
