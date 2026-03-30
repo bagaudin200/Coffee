@@ -192,12 +192,24 @@ def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
         raise ValueError("GOOGLE_API_KEY is not set in environment variables.")
     
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash', 
-                                  generation_config={"response_mime_type": "application/json"})
     
-    full_prompt = f"{system_prompt}\n\n{user_prompt}"
-    response = model.generate_content(full_prompt)
-    return json.loads(response.text)
+    # Try multiple model names to avoid 404 errors
+    models_to_try = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro']
+    last_error = None
+    
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name, 
+                                          generation_config={"response_mime_type": "application/json"})
+            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            response = model.generate_content(full_prompt)
+            return json.loads(response.text)
+        except Exception as e:
+            print(f"Error with model {model_name}: {e}")
+            last_error = e
+            continue
+            
+    raise last_error
 
 def generate_strategy(data: dict, preview_only: bool = True) -> dict:
     system_prompt = PREVIEW_SYSTEM_PROMPT if preview_only else FULL_SYSTEM_PROMPT
