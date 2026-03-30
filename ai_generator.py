@@ -174,18 +174,22 @@ def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only:
         raise ValueError("OPENAI_API_KEY or OPEN_API_KEY is not set in environment variables.")
     
     client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.7,
-        max_tokens=4000 if preview_only else 8000,
-        response_format={"type": "json_object"}
-    )
-    content = response.choices[0].message.content
-    return json.loads(content)
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini", # Using more stable model
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4000 if preview_only else 8000,
+            response_format={"type": "json_object"}
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        raise e
 
 def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
     api_key = os.environ.get("GOOGLE_API_KEY")
