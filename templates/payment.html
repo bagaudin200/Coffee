@@ -71,53 +71,27 @@
     <div class="payment-form-block">
       <h2>Оплата</h2>
 
-      <!-- Stripe button (if configured) -->
-      <div id="stripeBlock" class="payment-method-block">
-        <button id="stripeBtn" class="btn-primary btn-large btn-stripe">
-          💳 Оплатить картой (Stripe)
+      <div class="payment-method-block">
+        <div class="form-group">
+          <label for="email">Email для получения отчёта</label>
+          <input type="email" id="email" name="email"
+                 placeholder="your@email.com" required>
+          <p class="input-hint">На этот адрес мы также продублируем ссылку на скачивание</p>
+        </div>
+
+        <button id="yookassaBtn" class="btn-primary btn-large btn-block">
+          <span class="btn-icon">💳</span> Перейти к оплате (ЮKassa)
         </button>
-        <div class="payment-divider">
-          <span>или используйте демо-код</span>
+        
+        <div class="payment-security">
+          <span class="security-item">🔒 Безопасная оплата через ЮKassa</span>
+          <span class="security-item">📄 Чек придет на почту</span>
         </div>
-      </div>
-
-      <!-- Demo payment form -->
-      <div class="demo-payment-block">
-        <div class="demo-notice">
-          <span class="demo-badge">DEMO</span>
-          <span>Для тестирования используйте код: <strong>DEMO2024</strong></span>
-        </div>
-
-        <form id="paymentForm">
-          <div class="form-group">
-            <label for="email">Email для получения отчёта</label>
-            <input type="email" id="email" name="email"
-                   placeholder="your@email.com" required>
-          </div>
-
-          <div class="form-group">
-            <label for="payment_code">Код оплаты</label>
-            <div class="code-input-wrapper">
-              <input type="text" id="payment_code" name="payment_code"
-                     placeholder="Введите код..." required
-                     style="text-transform: uppercase;">
-              <div class="code-hint">Тестовый код: DEMO2024</div>
-            </div>
-          </div>
-
-          <button type="submit" class="btn-primary btn-large" id="payBtn">
-            <span class="btn-text">Получить PDF-отчёт →</span>
-            <span class="btn-loading hidden">
-              <span class="spinner"></span>
-              Генерируем отчёт...
-            </span>
-          </button>
-        </form>
       </div>
 
       <div id="paymentError" class="error-message hidden"></div>
 
-      <div class="payment-security">
+      <div class="payment-security-footer">
         <div class="security-item">🔒 SSL-шифрование</div>
         <div class="security-item">⚡ Мгновенная доставка</div>
         <div class="security-item">📄 PDF-формат</div>
@@ -127,6 +101,43 @@
   </div>
 </div>
 
-<script src="/static/js/payment.js"></script>
+<script>
+document.getElementById('yookassaBtn').addEventListener('click', async function() {
+    const email = document.getElementById('email').value;
+    if (!email || !email.includes('@')) {
+        alert('Пожалуйста, введите корректный email');
+        return;
+    }
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Создание платежа...';
+
+    try {
+        const response = await fetch('/api/create-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            // Redirect to Yookassa confirmation page
+            window.location.href = result.confirmation_url;
+        } else {
+            alert('Ошибка при создании платежа: ' + result.error);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Произошла сетевая ошибка. Попробуйте позже.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+</script>
+
 </body>
 </html>

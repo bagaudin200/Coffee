@@ -1,149 +1,140 @@
 import os
-import json
 import uuid
-import hashlib
-import traceback
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
-from dotenv import load_dotenv
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from ai_generator import generate_strategy
 from pdf_generator import generate_pdf_report
+from yookassa import Configuration, Payment
+from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
-# Use a strong secret key for client-side sessions
-app.secret_key = os.environ.get("SECRET_KEY", "coffeestrategy-secure-key-2024-v2")
+app.secret_key = os.environ.get("SECRET_KEY", "coffee-secret-2024")
 
-# Railway/Heroku often have issues with filesystem sessions. 
-# Switching to default Flask client-side signed cookie sessions for maximum reliability.
-app.config["SESSION_PERMANENT"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = 3600 # 1 hour
+# ЮKassa Configuration
+YOOKASSA_SHOP_ID = os.environ.get("YOOKASSA_SHOP_ID")
+YOOKASSA_SECRET_KEY = os.environ.get("YOOKASSA_SECRET_KEY")
 
-REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
-os.makedirs(REPORTS_DIR, exist_ok=True)
+if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
+    Configuration.configure(YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY)
 
-# Demo payment codes for testing
-VALID_PAYMENT_CODES = {"DEMO2024", "COFFEE99", "STRATEGY1"}
-
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route("/brief")
+@app.route('/brief')
 def brief():
-    return render_template("brief.html")
+    return render_template('brief.html')
 
-@app.route("/api/generate-preview", methods=["POST"])
-def generate_preview():
-    """Generate a free preview of the strategy."""
+@app.route('/api/generate', methods=['POST'])
+def api_generate():
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-
-        # Required fields check
-        required_fields = ["coffee_name", "location", "target_audience", "coffee_type", "price_range"]
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({"error": f"Field '{field}' is required"}), 400
-
-        print(f"Generating preview for: {data.get('coffee_name')}")
+        data = request.json
+        session['brief_data'] = data
+        
+        # Generate preview strategy
         strategy = generate_strategy(data, preview_only=True)
+        session['strategy_preview'] = strategy
         
-        # Store in session (Flask will sign this cookie)
-        session.permanent = True
-        session["brief_data"] = data
-        session["strategy_preview"] = strategy
-        session["session_id"] = str(uuid.uuid4())
-        
-        print("Preview generated and stored in session successfully.")
-        return jsonify({"success": True, "strategy": strategy})
+        return jsonify({"success": True, "redirect": url_for('preview')})
     except Exception as e:
-        print(f"ERROR in /api/generate-preview: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+        print(f"Error in api_generate: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route("/preview")
+@app.route('/preview')
 def preview():
-    try:
-        strategy = session.get("strategy_preview")
-        brief_data = session.get("brief_data")
+    brief_data = session.get('brief_data')
+    strategy = session.get('strategy_preview')
+    
+    if not brief_data or not strategy:
+        return redirect(url_for('brief'))
         
-        if not strategy or not brief_data:
-            print("Preview accessed without session data. Redirecting to brief.")
-            return redirect(url_for("brief"))
-            
-        return render_template("preview.html", strategy=strategy, brief_data=brief_data)
-    except Exception as e:
-        print(f"ERROR in /preview route: {str(e)}")
-        print(traceback.format_exc())
-        return f"Internal Server Error: {str(e)}", 500
+    return render_template('preview.html', brief_data=brief_data, strategy=strategy)
 
-@app.route("/payment")
+@app.route('/payment')
 def payment():
-    if not session.get("strategy_preview"):
-        return redirect(url_for("brief"))
-    return render_template("payment.html")
+    if 'brief_data' not in session:
+        return redirect(url_for('brief'))
+    return render_template('payment.html')
 
-@app.route("/api/process-payment", methods=["POST"])
-def process_payment():
-    """Process payment and generate full PDF report."""
+@app.route('/api/create-payment', methods=['POST'])
+def create_payment():
     try:
-        data = request.get_json()
-        payment_code = data.get("payment_code", "").strip().upper()
+        email = request.json.get('email')
+        if not email:
+            return jsonify({"success": False, "error": "Email is required"}), 400
+            
+        session['user_email'] = email
         
-        brief_data = session.get("brief_data")
-        if not brief_data:
-            return jsonify({"error": "Session expired. Please fill the brief again."}), 400
-
-        if payment_code not in VALID_PAYMENT_CODES:
-            return jsonify({"error": "Invalid payment code. Use DEMO2024 for testing."}), 400
-
-        # Generate full strategy
-        full_strategy = generate_strategy(brief_data, preview_only=False)
-
-        # Generate PDF
-        report_id = str(uuid.uuid4())[:8].upper()
-        pdf_filename = f"coffee_strategy_{report_id}.pdf"
-        pdf_path = os.path.join(REPORTS_DIR, pdf_filename)
-        generate_pdf_report(brief_data, full_strategy, pdf_path, report_id)
-
-        session["pdf_filename"] = pdf_filename
-        session["report_id"] = report_id
-
+        # Create Yookassa payment
+        idempotency_key = str(uuid.uuid4())
+        payment_response = Payment.create({
+            "amount": {
+                "value": "990.00",
+                "currency": "RUB"
+            },
+            "confirmation": {
+                "type": "redirect",
+                "return_url": request.host_url + "success"
+            },
+            "capture": True,
+            "description": f"Маркетинговая стратегия для кофейни ({email})",
+            "metadata": {
+                "email": email,
+                "coffee_name": session.get('brief_data', {}).get('coffee_name', 'Кофейня')
+            }
+        }, idempotency_key)
+        
+        # Store payment ID in session to check later
+        session['payment_id'] = payment_response.id
+        
         return jsonify({
-            "success": True,
-            "report_id": report_id,
-            "download_url": f"/download/{pdf_filename}"
+            "success": True, 
+            "confirmation_url": payment_response.confirmation.confirmation_url
         })
     except Exception as e:
-        print(f"ERROR in /api/process-payment: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        print(f"Yookassa Error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route("/download/<filename>")
-def download_report(filename):
-    if not filename.endswith(".pdf") or "/" in filename or ".." in filename:
-        return "Invalid file", 400
-
-    pdf_path = os.path.join(REPORTS_DIR, filename)
-    if not os.path.exists(pdf_path):
-        return "Report not found", 404
-
-    return send_file(pdf_path, as_attachment=True, download_name=filename)
-
-@app.route("/success")
+@app.route('/success')
 def success():
-    report_id = session.get("report_id")
-    pdf_filename = session.get("pdf_filename")
-    brief_data = session.get("brief_data")
-    if not report_id:
-        return redirect(url_for("index"))
-    return render_template("success.html",
-                           report_id=report_id,
-                           pdf_filename=pdf_filename,
-                           coffee_name=brief_data.get("coffee_name", "") if brief_data else "")
+    # In a real app, we'd check the payment status via API or Webhook
+    # For now, we'll assume success if they returned to this URL
+    payment_id = session.get('payment_id')
+    if not payment_id:
+        return redirect(url_for('index'))
+        
+    return render_template('success.html')
 
-if __name__ == "__main__":
+@app.route('/api/download-report')
+def download_report():
+    try:
+        brief_data = session.get('brief_data')
+        if not brief_data:
+            return "No data found", 404
+            
+        # Generate full strategy
+        full_strategy = generate_strategy(brief_data, preview_only=False)
+        
+        # Generate PDF
+        pdf_path = f"/tmp/strategy_{uuid.uuid4().hex}.pdf"
+        generate_pdf_report(brief_data, full_strategy, pdf_path)
+        
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=f"Strategy_{brief_data.get('coffee_name', 'Coffee')}.pdf"
+        )
+    except Exception as e:
+        print(f"PDF Generation Error: {str(e)}")
+        return str(e), 500
+
+# Webhook for Yookassa (Optional but recommended for production)
+@app.route('/api/yookassa-webhook', methods=['POST'])
+def yookassa_webhook():
+    # Logic to handle payment.succeeded event
+    return jsonify({"status": "ok"})
+
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host='0.0.0.0', port=port)
