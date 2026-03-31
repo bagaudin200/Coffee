@@ -3,238 +3,104 @@ import json
 from openai import OpenAI
 import google.generativeai as genai
 
-# We will initialize clients lazily inside functions to avoid startup crashes if keys are missing
-
-PREVIEW_SYSTEM_PROMPT = """Ты — эксперт по маркетингу кофеен. Тебе дают краткий бриф о кофейне, и ты создаёшь КРАТКОЕ превью маркетинговой стратегии.
-Отвечай ТОЛЬКО валидным JSON без markdown-блоков, без пояснений.
-Структура ответа строго такая:
+# System prompts for AI
+PREVIEW_SYSTEM_PROMPT = """Ты — эксперт по маркетингу кофеен. 
+Твоя задача — создать краткое превью маркетинговой стратегии на основе брифа.
+Ответ должен быть СТРОГО в формате JSON со следующими полями:
 {
-  "audience_preview": {
-    "primary_segment": "название основного сегмента",
-    "age_range": "возрастной диапазон",
-    "key_needs": ["потребность 1", "потребность 2", "потребность 3"],
-    "pain_points": ["боль 1", "боль 2"]
-  },
-  "branding_preview": {
-    "brand_archetype": "архетип бренда",
-    "color_palette": ["цвет1", "цвет2", "цвет3"],
-    "brand_voice": "описание голоса бренда",
-    "tagline": "слоган кофейни"
-  },
-  "content_teaser": {
-    "top_content_ideas": ["идея 1", "идея 2", "идея 3"],
-    "best_posting_times": "лучшее время для постов",
-    "recommended_platforms": ["платформа 1", "платформа 2"]
-  },
-  "strategy_summary": "краткое резюме стратегии в 2-3 предложениях"
+  "audience_summary": "Краткое описание ЦА (2-3 предложения)",
+  "branding_concept": "Основная идея бренда (1-2 предложения)",
+  "content_preview": "Пример одной идеи для поста"
 }"""
 
-FULL_SYSTEM_PROMPT = """Ты — эксперт по маркетингу кофеен с 10-летним опытом. Создай ПОЛНУЮ детальную маркетинговую стратегию на основе брифа.
-Отвечай ТОЛЬКО валидным JSON без markdown-блоков, без пояснений.
-Структура ответа строго такая:
+FULL_SYSTEM_PROMPT = """Ты — ведущий маркетолог для кофейного бизнеса. 
+Создай подробную маркетинговую стратегию.
+Ответ должен быть СТРОГО в формате JSON со следующей структурой:
 {
-  "audience_analysis": {
-    "primary_segment": {
-      "name": "название сегмента",
-      "age_range": "возраст",
-      "gender_split": "соотношение полов",
-      "income_level": "уровень дохода",
-      "lifestyle": "описание образа жизни",
-      "values": ["ценность 1", "ценность 2", "ценность 3"],
-      "coffee_habits": "привычки потребления кофе",
-      "decision_factors": ["фактор 1", "фактор 2", "фактор 3"]
-    },
-    "secondary_segment": {
-      "name": "название сегмента",
-      "age_range": "возраст",
-      "description": "описание",
-      "opportunity": "возможность для бизнеса"
-    },
-    "customer_journey": {
-      "awareness": "как узнают о кофейне",
-      "consideration": "что влияет на выбор",
-      "purchase": "триггеры покупки",
-      "loyalty": "что удерживает клиентов"
-    },
-    "pain_points": ["боль 1", "боль 2", "боль 3", "боль 4"],
-    "key_insights": ["инсайт 1", "инсайт 2", "инсайт 3"]
-  },
+  "target_audience": [
+    {"segment": "Название", "description": "Описание", "pain_points": "Боли", "value_prop": "Решение"}
+  ],
   "branding": {
-    "brand_archetype": "архетип",
-    "brand_personality": ["черта 1", "черта 2", "черта 3", "черта 4"],
-    "color_palette": {
-      "primary": "основной цвет + HEX",
-      "secondary": "вторичный цвет + HEX",
-      "accent": "акцентный цвет + HEX",
-      "background": "фоновый цвет + HEX",
-      "rationale": "обоснование выбора палитры"
-    },
-    "typography": {
-      "heading_font": "шрифт для заголовков",
-      "body_font": "шрифт для текста",
-      "rationale": "обоснование"
-    },
-    "brand_voice": {
-      "tone": "тон коммуникации",
-      "style": "стиль",
-      "do": ["делать 1", "делать 2", "делать 3"],
-      "dont": ["не делать 1", "не делать 2"]
-    },
-    "tagline": "слоган",
-    "visual_concepts": ["концепция 1", "концепция 2", "концепция 3"],
-    "logo_direction": "направление для логотипа",
-    "interior_mood": "атмосфера интерьера"
+    "concept": "Идея",
+    "visual_style": "Стиль",
+    "colors": ["Цвет1", "Цвет2"],
+    "tone_of_voice": "Голос бренда"
   },
   "content_plan": {
-    "strategy_overview": "общее описание контент-стратегии",
-    "platforms": {
-      "instagram": {
-        "priority": "высокий/средний/низкий",
-        "posting_frequency": "частота постинга",
-        "content_mix": "соотношение типов контента",
-        "best_times": ["время 1", "время 2"]
-      },
-      "vkontakte": {
-        "priority": "высокий/средний/низкий",
-        "posting_frequency": "частота постинга",
-        "content_mix": "соотношение типов контента",
-        "best_times": ["время 1", "время 2"]
-      },
-      "telegram": {
-        "priority": "высокий/средний/низкий",
-        "posting_frequency": "частота постинга",
-        "content_mix": "соотношение типов контента",
-        "best_times": ["время 1"]
-      }
-    },
-    "content_pillars": [
-      {"name": "пиллар 1", "description": "описание", "percentage": "процент контента"},
-      {"name": "пиллар 2", "description": "описание", "percentage": "процент контента"},
-      {"name": "пиллар 3", "description": "описание", "percentage": "процент контента"},
-      {"name": "пиллар 4", "description": "описание", "percentage": "процент контента"}
+    "pillars": ["Рубрика1", "Рубрика2"],
+    "posts": [
+      {"day": 1, "topic": "Тема", "type": "Тип", "hook": "Заголовок"}
     ],
-    "monthly_calendar": [
-      {"week": 1, "theme": "тема недели", "posts": [
-        {"day": "Понедельник", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Среда", "platform": "VK", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Пятница", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Суббота", "platform": "Telegram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"}
-      ]},
-      {"week": 2, "theme": "тема недели", "posts": [
-        {"day": "Понедельник", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Вторник", "platform": "VK", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Четверг", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Воскресенье", "platform": "Telegram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"}
-      ]},
-      {"week": 3, "theme": "тема недели", "posts": [
-        {"day": "Понедельник", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Среда", "platform": "VK", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Пятница", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Суббота", "platform": "Telegram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"}
-      ]},
-      {"week": 4, "theme": "тема недели", "posts": [
-        {"day": "Понедельник", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Среда", "platform": "VK", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Пятница", "platform": "Instagram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"},
-        {"day": "Воскресенье", "platform": "Telegram", "type": "тип поста", "idea": "идея поста", "caption_hook": "цепляющее начало"}
-      ]}
-    ],
-    "hashtag_strategy": {
-      "branded": ["хэштег1", "хэштег2"],
-      "niche": ["хэштег1", "хэштег2", "хэштег3"],
-      "local": ["хэштег1", "хэштег2", "хэштег3"],
-      "trending": ["хэштег1", "хэштег2"]
-    },
-    "engagement_tactics": ["тактика 1", "тактика 2", "тактика 3", "тактика 4"]
-  },
-  "quick_wins": ["быстрая победа 1", "быстрая победа 2", "быстрая победа 3"],
-  "kpis": [
-    {"metric": "метрика 1", "target": "цель", "timeframe": "срок"},
-    {"metric": "метрика 2", "target": "цель", "timeframe": "срок"},
-    {"metric": "метрика 3", "target": "цель", "timeframe": "срок"}
-  ]
+    "hashtags": ["#тег1", "#тег2"],
+    "kpis": ["Метрика1", "Метрика2"]
+  }
 }"""
 
 def build_user_prompt(data: dict) -> str:
-    return f"""Бриф кофейни:
-- Название: {data.get('coffee_name', 'Не указано')}
-- Город/Район: {data.get('location', 'Не указано')}
-- Тип заведения: {data.get('coffee_type', 'Не указано')}
-- Целевая аудитория (по мнению владельца): {data.get('target_audience', 'Не указано')}
-- Ценовой диапазон: {data.get('price_range', 'Не указано')}
-- Уникальность/Особенности: {data.get('unique_features', 'Не указано')}
-- Конкуренты поблизости: {data.get('competitors', 'Не указано')}
-- Текущие соцсети: {data.get('social_media', 'Не указано')}
-- Дополнительно: {data.get('additional_info', 'Не указано')}"""
+    return f"""
+Бриф кофейни:
+- Название/Локация: {data.get('location', 'Не указано')}
+- Клиенты: {data.get('target_customers', 'Не указано')}
+- Конкуренты: {data.get('competitors', 'Не указано')}
+- Соцсети: {data.get('social_media', 'Не указано')}
+- Доп. инфо: {data.get('additional_info', 'Не указано')}
+"""
 
 def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only: bool) -> dict:
-    # Support both OPENAI_API_KEY and OPEN_API_KEY (user's typo in Railway)
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPEN_API_KEY")
     if not api_key:
-        raise ValueError("OPENAI_API_KEY or OPEN_API_KEY is not set in environment variables.")
+        raise ValueError("No OpenAI API key found.")
     
     client = OpenAI(api_key=api_key)
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini", # Using more stable model
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7,
-            max_tokens=4000 if preview_only else 8000,
-            response_format={"type": "json_object"}
-        )
-        content = response.choices[0].message.content
-        return json.loads(content)
-    except Exception as e:
-        print(f"OpenAI API error: {e}")
-        raise e
+    # Use gpt-4o-mini as it's very stable and supports JSON mode well
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.7,
+        response_format={"type": "json_object"}
+    )
+    return json.loads(response.choices[0].message.content)
 
 def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("GOOGLE_API_KEY is not set in environment variables.")
+        raise ValueError("No Google API key found.")
     
     genai.configure(api_key=api_key)
+    # Use a more robust way to call Gemini
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    full_prompt = f"{system_prompt}\n\n{user_prompt}\n\nОТВЕТЬ ТОЛЬКО В ФОРМАТЕ JSON."
     
-    # Try multiple model names to avoid 404 errors
-    models_to_try = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro']
-    last_error = None
-    
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(model_name, 
-                                          generation_config={"response_mime_type": "application/json"})
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = model.generate_content(full_prompt)
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"Error with model {model_name}: {e}")
-            last_error = e
-            continue
-            
-    raise last_error
+    response = model.generate_content(
+        full_prompt,
+        generation_config={"response_mime_type": "application/json"}
+    )
+    return json.loads(response.text)
 
 def generate_strategy(data: dict, preview_only: bool = True) -> dict:
     system_prompt = PREVIEW_SYSTEM_PROMPT if preview_only else FULL_SYSTEM_PROMPT
     user_prompt = build_user_prompt(data)
-
-    # Priority 1: OpenAI (Most stable on Railway)
-    # Support both OPENAI_API_KEY and OPEN_API_KEY
+    
+    # Try OpenAI first (most stable)
     if os.environ.get("OPENAI_API_KEY") or os.environ.get("OPEN_API_KEY"):
         try:
+            print("Attempting generation with OpenAI...")
             return generate_strategy_openai(system_prompt, user_prompt, preview_only)
         except Exception as e:
-            print(f"OpenAI error: {e}. Falling back to Gemini if possible.")
-            if os.environ.get("GOOGLE_API_KEY"):
-                return generate_strategy_gemini(system_prompt, user_prompt)
-            else:
+            print(f"OpenAI error: {str(e)}")
+            if not os.environ.get("GOOGLE_API_KEY"):
                 raise e
     
-    # Priority 2: Gemini
-    elif os.environ.get("GOOGLE_API_KEY"):
-        return generate_strategy_gemini(system_prompt, user_prompt)
-    
-    else:
-        raise ValueError("No AI API keys found (OPENAI_API_KEY or GOOGLE_API_KEY). Please set them in Railway variables.")
+    # Fallback to Gemini
+    if os.environ.get("GOOGLE_API_KEY"):
+        try:
+            print("Attempting generation with Gemini...")
+            return generate_strategy_gemini(system_prompt, user_prompt)
+        except Exception as e:
+            print(f"Gemini error: {str(e)}")
+            raise e
+            
+    raise ValueError("No valid AI API keys found in environment variables.")
