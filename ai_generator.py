@@ -34,7 +34,6 @@ MOCK_FULL = {
 
 def clean_json_response(text: str) -> dict:
     """Clean JSON response from AI (remove markdown code blocks if present)."""
-    # Remove markdown code blocks like ```json ... ```
     text = re.sub(r'```json\s*', '', text)
     text = re.sub(r'```\s*', '', text)
     text = text.strip()
@@ -57,7 +56,25 @@ def generate_strategy_openai(system_prompt: str, user_prompt: str, preview_only:
             {"role": "user", "content": user_prompt}
         ],
         temperature=0.7,
-        max_tokens=2000 if preview_only else 4000
+        response_format={"type": "json_object"}
+    )
+    return clean_json_response(response.choices[0].message.content)
+
+def generate_strategy_deepseek(system_prompt: str, user_prompt: str, preview_only: bool) -> dict:
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        raise ValueError("No DeepSeek API key found.")
+    
+    # DeepSeek uses OpenAI-compatible API
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.7,
+        response_format={"type": "json_object"}
     )
     return clean_json_response(response.choices[0].message.content)
 
@@ -74,32 +91,38 @@ def generate_strategy_gemini(system_prompt: str, user_prompt: str) -> dict:
     return clean_json_response(response.text)
 
 def generate_strategy(data: dict, preview_only: bool = True) -> dict:
-    # 1. ABSOLUTE TEST MODE (Priority 1)
-    # Check if ANY field contains "TEST"
+    # 1. TEST MODE
     all_values = " ".join([str(v) for v in data.values()]).upper()
     if "TEST" in all_values:
-        print("!!! TEST MODE ACTIVATED !!! Returning mock data immediately.")
+        print("!!! TEST MODE ACTIVATED !!!")
         return MOCK_PREVIEW if preview_only else MOCK_FULL
 
     # 2. Normal AI Generation
     system_prompt = "Ты эксперт по маркетингу кофеен. Отвечай только в формате JSON."
     user_prompt = f"Создай {'превью' if preview_only else 'полную'} стратегию для кофейни: {json.dumps(data, ensure_ascii=False)}"
     
+    # Try DeepSeek (User requested)
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        try:
+            print("Attempting generation with DeepSeek...")
+            return generate_strategy_deepseek(system_prompt, user_prompt, preview_only)
+        except Exception as e:
+            print(f"DeepSeek error: {str(e)}")
+
     # Try OpenAI
     if os.environ.get("OPENAI_API_KEY") or os.environ.get("OPEN_API_KEY"):
         try:
+            print("Attempting generation with OpenAI...")
             return generate_strategy_openai(system_prompt, user_prompt, preview_only)
         except Exception as e:
             print(f"OpenAI error: {str(e)}")
-            if not os.environ.get("GOOGLE_API_KEY"):
-                raise e
     
     # Fallback to Gemini
     if os.environ.get("GOOGLE_API_KEY"):
         try:
+            print("Attempting generation with Gemini...")
             return generate_strategy_gemini(system_prompt, user_prompt)
         except Exception as e:
             print(f"Gemini error: {str(e)}")
-            raise e
             
-    raise ValueError("No valid AI API keys found. Use 'TEST' in the form to skip AI.")
+    raise ValueError("No valid AI API keys found. Please check Railway variables.")
